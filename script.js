@@ -239,7 +239,10 @@ document.addEventListener('DOMContentLoaded', () => {
   updateLoginButton();
 });
 
-// ========== LOGIN SIDEBAR ==========
+// ========== AUTH & OTP ==========
+let pendingSignup = null;   // temporary data while waiting for OTP
+let generatedOtp = null;
+
 function openLoginSidebar() {
   if (isLoggedIn) {
     if (confirm('You are already logged in. Do you want to logout?')) {
@@ -247,6 +250,7 @@ function openLoginSidebar() {
     }
     return;
   }
+  resetAuthUI();
   document.getElementById('loginOverlay').classList.add('active');
   document.getElementById('loginSidebar').classList.add('active');
   document.body.style.overflow = 'hidden';
@@ -256,13 +260,34 @@ function closeLoginSidebar() {
   document.getElementById('loginOverlay').classList.remove('active');
   document.getElementById('loginSidebar').classList.remove('active');
   document.body.style.overflow = '';
+  resetAuthUI();
+}
+
+function resetAuthUI() {
+  document.getElementById('loginForm').style.display = 'flex';
+  document.getElementById('signupForm').style.display = 'none';
+  document.getElementById('otpForm').style.display = 'none';
+  document.getElementById('authTabs').style.display = 'flex';
+  document.getElementById('socialDivider').style.display = 'flex';
+  document.getElementById('socialLogin').style.display = 'flex';
+  document.getElementById('authTitle').textContent = 'Welcome to Vaniko';
+  document.getElementById('loginTabBtn').classList.add('active');
+  document.getElementById('signupTabBtn').classList.remove('active');
+  pendingSignup = null;
+  generatedOtp = null;
 }
 
 function switchAuthTab(tab) {
   const loginForm = document.getElementById('loginForm');
   const signupForm = document.getElementById('signupForm');
+  const otpForm = document.getElementById('otpForm');
   const loginTabBtn = document.getElementById('loginTabBtn');
   const signupTabBtn = document.getElementById('signupTabBtn');
+
+  otpForm.style.display = 'none';
+  document.getElementById('socialDivider').style.display = 'flex';
+  document.getElementById('socialLogin').style.display = 'flex';
+  document.getElementById('authTitle').textContent = 'Welcome to Vaniko';
 
   if (tab === 'login') {
     loginForm.style.display = 'flex';
@@ -279,42 +304,146 @@ function switchAuthTab(tab) {
 
 function handleLogin(e) {
   e.preventDefault();
-  const email = document.getElementById('loginEmail').value.trim();
+  const identifier = document.getElementById('loginEmail').value.trim();
   const password = document.getElementById('loginPassword').value;
 
-  if (!email || !password) {
+  if (!identifier || !password) {
     showToast('Please fill all fields');
     return;
   }
 
-  localStorage.setItem('vanikoUser', JSON.stringify({ email, name: email.split('@')[0] || 'User' }));
-  isLoggedIn = true;
-  updateLoginButton();
-  closeLoginSidebar();
-  showToast('Welcome back! Logged in successfully');
+  // Check against saved users (demo localStorage database)
+  const users = JSON.parse(localStorage.getItem('vanikoUsers') || '[]');
+  const found = users.find(u => 
+    (u.email === identifier || u.mobile === identifier) && u.password === password
+  );
+
+  if (found) {
+    localStorage.setItem('vanikoUser', JSON.stringify(found));
+    isLoggedIn = true;
+    updateLoginButton();
+    closeLoginSidebar();
+    showToast('Welcome back, ' + found.name + '!');
+  } else {
+    // For demo convenience also allow any credentials if no users exist yet
+    if (users.length === 0) {
+      const demoUser = { name: identifier.split('@')[0] || 'User', email: identifier, mobile: '', password };
+      localStorage.setItem('vanikoUser', JSON.stringify(demoUser));
+      isLoggedIn = true;
+      updateLoginButton();
+      closeLoginSidebar();
+      showToast('Logged in successfully!');
+    } else {
+      showToast('Invalid email/mobile or password');
+    }
+  }
 }
 
-function handleSignup(e) {
+function handleSignupStep1(e) {
   e.preventDefault();
   const name = document.getElementById('signupName').value.trim();
-  const email = document.getElementById('signupEmail').value.trim();
   const mobile = document.getElementById('signupMobile').value.trim();
+  const email = document.getElementById('signupEmail').value.trim();
   const password = document.getElementById('signupPassword').value;
 
-  if (!name || !email || !mobile || !password) {
+  if (!name || !mobile || !email || !password) {
     showToast('Please fill all fields');
     return;
   }
+  if (!/^[0-9]{10}$/.test(mobile)) {
+    showToast('Enter valid 10-digit mobile number');
+    return;
+  }
+  if (password.length < 6) {
+    showToast('Password must be at least 6 characters');
+    return;
+  }
 
-  localStorage.setItem('vanikoUser', JSON.stringify({ name, email, mobile }));
+  // Check if already registered
+  const users = JSON.parse(localStorage.getItem('vanikoUsers') || '[]');
+  if (users.some(u => u.email === email || u.mobile === mobile)) {
+    showToast('Account already exists. Please Login.');
+    switchAuthTab('login');
+    return;
+  }
+
+  pendingSignup = { name, mobile, email, password };
+  
+  // Generate 6-digit OTP (demo)
+  generatedOtp = String(Math.floor(100000 + Math.random() * 900000));
+
+  // Show OTP screen
+  document.getElementById('signupForm').style.display = 'none';
+  document.getElementById('otpForm').style.display = 'flex';
+  document.getElementById('authTabs').style.display = 'none';
+  document.getElementById('socialDivider').style.display = 'none';
+  document.getElementById('socialLogin').style.display = 'none';
+  document.getElementById('authTitle').textContent = 'Verify OTP';
+  document.getElementById('otpTarget').textContent = mobile + ' & ' + email;
+  
+  // For demo: show OTP so you can test easily
+  document.getElementById('demoOtpHint').textContent = 'Demo OTP: ' + generatedOtp + ' (for testing)';
+  document.getElementById('otpInput').value = '';
+  document.getElementById('otpInput').focus();
+
+  showToast('OTP sent to your mobile & email');
+}
+
+function verifyOtp() {
+  const entered = document.getElementById('otpInput').value.trim();
+  
+  if (!entered || entered.length !== 6) {
+    showToast('Please enter 6-digit OTP');
+    return;
+  }
+
+  if (entered !== generatedOtp) {
+    showToast('Invalid OTP. Please try again.');
+    return;
+  }
+
+  // OTP correct → create account
+  const users = JSON.parse(localStorage.getItem('vanikoUsers') || '[]');
+  users.push(pendingSignup);
+  localStorage.setItem('vanikoUsers', JSON.stringify(users));
+
+  localStorage.setItem('vanikoUser', JSON.stringify(pendingSignup));
   isLoggedIn = true;
   updateLoginButton();
   closeLoginSidebar();
-  showToast('Account created! Welcome, ' + name);
+  showToast('Account created successfully! Welcome, ' + pendingSignup.name);
+  
+  pendingSignup = null;
+  generatedOtp = null;
+}
+
+function resendOtp() {
+  if (!pendingSignup) return;
+  generatedOtp = String(Math.floor(100000 + Math.random() * 900000));
+  document.getElementById('demoOtpHint').textContent = 'Demo OTP: ' + generatedOtp + ' (for testing)';
+  document.getElementById('otpInput').value = '';
+  showToast('New OTP sent!');
+}
+
+function backToSignup() {
+  document.getElementById('otpForm').style.display = 'none';
+  document.getElementById('signupForm').style.display = 'flex';
+  document.getElementById('authTabs').style.display = 'flex';
+  document.getElementById('socialDivider').style.display = 'flex';
+  document.getElementById('socialLogin').style.display = 'flex';
+  document.getElementById('authTitle').textContent = 'Welcome to Vaniko';
+  pendingSignup = null;
+  generatedOtp = null;
 }
 
 function socialLogin(provider) {
-  localStorage.setItem('vanikoUser', JSON.stringify({ name: provider + ' User', email: 'user@' + provider.toLowerCase() + '.com' }));
+  const user = { 
+    name: provider + ' User', 
+    email: 'user@' + provider.toLowerCase() + '.com',
+    mobile: '',
+    password: ''
+  };
+  localStorage.setItem('vanikoUser', JSON.stringify(user));
   isLoggedIn = true;
   updateLoginButton();
   closeLoginSidebar();
@@ -344,7 +473,7 @@ function showToast(message) {
   const toast = document.getElementById('toast');
   toast.textContent = message;
   toast.classList.add('show');
-  setTimeout(() => toast.classList.remove('show'), 2800);
+  setTimeout(() => toast.classList.remove('show'), 3000);
 }
 
 // ========== PRODUCTS ==========
@@ -584,11 +713,90 @@ function placeOrder() {
     return;
   }
   
-  showToast('Order placed successfully!');
+  const user = JSON.parse(localStorage.getItem('vanikoUser'));
+  const orderId = 'VN' + Date.now().toString().slice(-8);
+  const totalAmount = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+  
+  const order = {
+    orderId,
+    date: new Date().toLocaleString('en-IN'),
+    customer: {
+      name: user.name,
+      email: user.email,
+      mobile: user.mobile || 'Not provided'
+    },
+    items: cart.map(item => ({
+      title: item.title,
+      qty: item.quantity,
+      price: item.price
+    })),
+    total: totalAmount
+  };
+
+  // Save order locally (so you can see it later)
+  const allOrders = JSON.parse(localStorage.getItem('vanikoOrders') || '[]');
+  allOrders.push(order);
+  localStorage.setItem('vanikoOrders', JSON.stringify(allOrders));
+
+  // Clear cart
   cart = [];
   saveCart();
   updateCartCount();
   renderCart();
+
+  // Show success modal
+  document.getElementById('orderSuccessMsg').textContent = 
+    'Thank you ' + user.name + '! Your order has been placed.';
+  document.getElementById('orderIdText').textContent = 'Order ID: ' + orderId;
+  document.getElementById('orderSuccessModal').classList.add('active');
+
+  // ===== OWNER NOTIFICATION =====
+  // This sends an email to you when someone places an order.
+  // 1. Go to https://web3forms.com → enter your email → get Access Key
+  // 2. Replace the access_key below with your key
+  const WEB3FORMS_ACCESS_KEY = 'YOUR_ACCESS_KEY_HERE';   // ← put your key here
+
+  if (WEB3FORMS_ACCESS_KEY && WEB3FORMS_ACCESS_KEY !== 'YOUR_ACCESS_KEY_HERE') {
+    const formData = new FormData();
+    formData.append('access_key', WEB3FORMS_ACCESS_KEY);
+    formData.append('subject', '🛒 New Order on Vaniko - ' + orderId);
+    formData.append('from_name', 'Vaniko Store');
+    
+    let message = 'New Order Received!\n\n';
+    message += 'Order ID: ' + orderId + '\n';
+    message += 'Date: ' + order.date + '\n\n';
+    message += 'Customer Details:\n';
+    message += 'Name: ' + user.name + '\n';
+    message += 'Email: ' + user.email + '\n';
+    message += 'Mobile: ' + (user.mobile || 'N/A') + '\n\n';
+    message += 'Items:\n';
+    order.items.forEach(item => {
+      message += '- ' + item.title + ' × ' + item.qty + ' = ₹' + (item.price * item.qty).toLocaleString('en-IN') + '\n';
+    });
+    message += '\nTotal Amount: ₹' + totalAmount.toLocaleString('en-IN');
+    
+    formData.append('message', message);
+
+    fetch('https://api.web3forms.com/submit', {
+      method: 'POST',
+      body: formData
+    }).then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          console.log('Owner notified via email');
+        }
+      })
+      .catch(err => console.log('Notification error (demo mode):', err));
+  } else {
+    console.log('=== NEW ORDER (Owner Notification) ===');
+    console.log(order);
+    console.log('To receive real email notifications, add your Web3Forms access key in script.js');
+  }
+}
+
+function closeOrderSuccess() {
+  document.getElementById('orderSuccessModal').classList.remove('active');
+  showHome();
 }
 
 // ========== PRODUCT MODAL ==========

@@ -163,13 +163,13 @@
   <div class="login-overlay" id="loginOverlay" onclick="closeLoginSidebar()"></div>
   <aside class="login-sidebar" id="loginSidebar">
     <div class="login-sidebar-header">
-      <h2>Welcome to Vaniko</h2>
+      <h2 id="authTitle">Welcome to Vaniko</h2>
       <button class="close-sidebar" onclick="closeLoginSidebar()">
         <i class="fas fa-times"></i>
       </button>
     </div>
     
-    <div class="login-tabs">
+    <div class="login-tabs" id="authTabs">
       <button class="login-tab active" id="loginTabBtn" onclick="switchAuthTab('login')">Login</button>
       <button class="login-tab" id="signupTabBtn" onclick="switchAuthTab('signup')">Sign Up</button>
     </div>
@@ -177,10 +177,10 @@
     <!-- Login Form -->
     <form class="auth-form" id="loginForm" onsubmit="handleLogin(event)">
       <div class="form-group">
-        <label>Email or Mobile</label>
+        <label>Email or Mobile Number</label>
         <div class="input-with-icon">
-          <i class="fas fa-envelope"></i>
-          <input type="text" id="loginEmail" placeholder="Enter email or mobile" required>
+          <i class="fas fa-user"></i>
+          <input type="text" id="loginEmail" placeholder="Email or 10-digit mobile" required>
         </div>
       </div>
       <div class="form-group">
@@ -192,51 +192,71 @@
       </div>
       <div class="form-options">
         <label class="remember-me">
-          <input type="checkbox"> Remember me
+          <input type="checkbox" id="rememberMe"> Remember me
         </label>
-        <a href="#" class="forgot-link">Forgot Password?</a>
+        <a href="#" class="forgot-link" onclick="showToast('Feature coming soon'); return false;">Forgot Password?</a>
       </div>
       <button type="submit" class="auth-submit-btn">Login</button>
     </form>
     
-    <!-- Signup Form -->
-    <form class="auth-form" id="signupForm" style="display: none;" onsubmit="handleSignup(event)">
+    <!-- Signup Form - Step 1: Details -->
+    <form class="auth-form" id="signupForm" style="display: none;" onsubmit="handleSignupStep1(event)">
       <div class="form-group">
         <label>Full Name</label>
         <div class="input-with-icon">
           <i class="fas fa-user"></i>
-          <input type="text" id="signupName" placeholder="Enter your name" required>
+          <input type="text" id="signupName" placeholder="Enter your full name" required>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Mobile Number</label>
+        <div class="input-with-icon">
+          <i class="fas fa-phone"></i>
+          <input type="tel" id="signupMobile" placeholder="10-digit mobile number" pattern="[0-9]{10}" maxlength="10" required>
         </div>
       </div>
       <div class="form-group">
         <label>Email</label>
         <div class="input-with-icon">
           <i class="fas fa-envelope"></i>
-          <input type="email" id="signupEmail" placeholder="Enter email" required>
-        </div>
-      </div>
-      <div class="form-group">
-        <label>Mobile</label>
-        <div class="input-with-icon">
-          <i class="fas fa-phone"></i>
-          <input type="tel" id="signupMobile" placeholder="Enter mobile number" required>
+          <input type="email" id="signupEmail" placeholder="Enter your email" required>
         </div>
       </div>
       <div class="form-group">
         <label>Password</label>
         <div class="input-with-icon">
           <i class="fas fa-lock"></i>
-          <input type="password" id="signupPassword" placeholder="Create password" required>
+          <input type="password" id="signupPassword" placeholder="Create password (min 6 chars)" minlength="6" required>
         </div>
       </div>
-      <button type="submit" class="auth-submit-btn">Create Account</button>
+      <button type="submit" class="auth-submit-btn">Send OTP</button>
     </form>
+
+    <!-- Signup Form - Step 2: OTP -->
+    <div class="auth-form" id="otpForm" style="display: none;">
+      <p style="font-size:13px; color:#64748b; margin-bottom:16px; text-align:center;">
+        OTP sent to <strong id="otpTarget">your mobile/email</strong>
+      </p>
+      <div class="form-group">
+        <label>Enter 6-digit OTP</label>
+        <div class="input-with-icon">
+          <i class="fas fa-key"></i>
+          <input type="text" id="otpInput" placeholder="Enter OTP" maxlength="6" pattern="[0-9]{6}" inputmode="numeric">
+        </div>
+      </div>
+      <p style="font-size:12px; color:#0d9488; text-align:center; margin:8px 0 16px;" id="demoOtpHint"></p>
+      <button type="button" class="auth-submit-btn" onclick="verifyOtp()">Verify & Create Account</button>
+      <button type="button" class="auth-submit-btn" style="background:#64748b; margin-top:10px;" onclick="backToSignup()">← Back</button>
+      <p style="font-size:12px; text-align:center; margin-top:14px;">
+        <a href="#" onclick="resendOtp(); return false;" style="color:#0d9488;">Resend OTP</a>
+      </p>
+    </div>
     
-    <div class="login-divider">
+    <div class="login-divider" id="socialDivider">
       <span>or continue with</span>
     </div>
     
-    <div class="social-login">
+    <div class="social-login" id="socialLogin">
       <button class="social-btn google" onclick="socialLogin('Google')">
         <i class="fab fa-google"></i> Google
       </button>
@@ -249,6 +269,17 @@
       By continuing, you agree to Vaniko's <a href="#">Terms of Use</a> and <a href="#">Privacy Policy</a>.
     </p>
   </aside>
+
+  <!-- Order Success Modal -->
+  <div class="modal" id="orderSuccessModal">
+    <div class="modal-content" style="max-width:480px; text-align:center; padding:40px 32px;">
+      <div style="font-size:64px; color:#10b981; margin-bottom:16px;">✓</div>
+      <h2 style="font-family:'Poppins',sans-serif; margin-bottom:8px;">Order Placed!</h2>
+      <p style="color:#64748b; margin-bottom:8px;" id="orderSuccessMsg">Thank you for shopping with Vaniko.</p>
+      <p style="font-size:13px; color:#0d9488; margin-bottom:24px;" id="orderIdText"></p>
+      <button class="auth-submit-btn" style="max-width:200px; margin:0 auto;" onclick="closeOrderSuccess()">Continue Shopping</button>
+    </div>
+  </div>
 
   <!-- Toast Notification -->
   <div class="toast" id="toast"></div>
