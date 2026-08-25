@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vaniko — Smart Online Shopping</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <!-- Header -->
+  <header class="header">
+    <div class="header-top">
+      <div class="container header-content">
+        <div class="logo" onclick="showHome()">
+          <div class="logo-icon">V</div>
+          <div class="logo-text-wrap">
+            <span class="logo-text">Vaniko</span>
+            <span class="logo-tagline">Shop Smart. Live Better.</span>
+          </div>
+        </div>
+        
+        <div class="search-box">
+          <i class="fas fa-search search-icon"></i>
+          <input type="text" id="searchInput" placeholder="Search products, brands & more..." onkeyup="searchProducts()">
+        </div>
+        
+        <div class="header-actions">
+          <button class="login-btn" onclick="openLoginSidebar()">
+            <i class="fas fa-user"></i>
+            <span>Login</span>
+          </button>
+          <div class="cart-icon" onclick="showCart()">
+            <i class="fas fa-shopping-bag"></i>
+            <span class="cart-count" id="cartCount">0</span>
+            <span class="cart-text">Cart</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Categories Nav -->
+    <nav class="categories-nav">
+      <div class="container">
+        <ul class="categories-list" id="categoriesList">
+          <li onclick="filterCategory('all')" class="active">All</li>
+          <li onclick="filterCategory('mobiles')">Mobiles</li>
+          <li onclick="filterCategory('electronics')">Electronics</li>
+          <li onclick="filterCategory('fashion')">Fashion</li>
+          <li onclick="filterCategory('home')">Home</li>
+          <li onclick="filterCategory('appliances')">Appliances</li>
+          <li onclick="filterCategory('beauty')">Beauty</li>
+        </ul>
+      </div>
+    </nav>
+  </header>
+
+  <!-- Main Content -->
+  <main class="main-content">
+    <!-- Banner -->
+    <section class="banner-section" id="bannerSection">
+      <div class="container">
+        <div class="banner">
+          <div class="banner-content">
+            <span class="banner-badge">New Season Sale</span>
+            <h1>Discover More.<br>Pay Less.</h1>
+            <p>Exclusive deals up to 70% off on top brands</p>
+            <button class="shop-now-btn" onclick="filterCategory('all')">
+              Explore Deals <i class="fas fa-arrow-right"></i>
+            </button>
+          </div>
+          <div class="banner-visual">
+            <div class="floating-card card-1"><i class="fas fa-mobile-alt"></i></div>
+            <div class="floating-card card-2"><i class="fas fa-headphones"></i></div>
+            <div class="floating-card card-3"><i class="fas fa-laptop"></i></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Products Section -->
+    <section class="products-section" id="productsSection">
+      <div class="container">
+        <div class="section-header">
+          <h2 id="sectionTitle">All Products</h2>
+          <div class="sort-filter">
+            <select id="sortSelect" onchange="sortProducts()">
+              <option value="default">Sort by: Relevance</option>
+              <option value="price-low">Price: Low to High</option>
+              <option value="price-high">Price: High to Low</option>
+              <option value="rating">Customer Rating</option>
+            </select>
+          </div>
+        </div>
+        
+        <div class="products-grid" id="productsGrid">
+          <!-- Products injected here -->
+        </div>
+        
+        <div class="no-results" id="noResults" style="display: none;">
+          <i class="fas fa-box-open"></i>
+          <p>No products found matching your search.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Cart Section -->
+    <section class="cart-section" id="cartSection" style="display: none;">
+      <div class="container">
+        <div class="cart-header">
+          <h2><i class="fas fa-shopping-bag"></i> My Cart (<span id="cartItemCount">0</span>)</h2>
+          <button class="continue-shopping" onclick="showHome()">
+            <i class="fas fa-arrow-left"></i> Continue Shopping
+          </button>
+        </div>
+        
+        <div class="cart-content">
+          <div class="cart-items" id="cartItems"></div>
+          
+          <div class="cart-summary" id="cartSummary">
+            <h3>Order Summary</h3>
+            <div class="price-row">
+              <span>Price (<span id="summaryCount">0</span> items)</span>
+              <span id="summaryPrice">₹0</span>
+            </div>
+            <div class="price-row">
+              <span>Discount</span>
+              <span class="discount" id="summaryDiscount">- ₹0</span>
+            </div>
+            <div class="price-row">
+              <span>Delivery</span>
+              <span class="free">FREE</span>
+            </div>
+            <div class="price-row total">
+              <span>Total Amount</span>
+              <span id="summaryTotal">₹0</span>
+            </div>
+            <p class="savings" id="savingsText">You will save ₹0 on this order</p>
+            <button class="place-order-btn" onclick="placeOrder()">Place Order</button>
+          </div>
+        </div>
+        
+        <div class="empty-cart" id="emptyCart" style="display: none;">
+          <i class="fas fa-shopping-bag"></i>
+          <h3>Your cart is empty</h3>
+          <p>Looks like you haven't added anything yet.</p>
+          <button onclick="showHome()">Start Shopping</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Product Modal -->
+  <div class="modal" id="productModal">
+    <div class="modal-content">
+      <span class="close-modal" onclick="closeModal()">&times;</span>
+      <div class="modal-body" id="modalBody"></div>
+    </div>
+  </div>
+
+  <!-- Login Sidebar (Right Side) -->
+  <div class="login-overlay" id="loginOverlay" onclick="closeLoginSidebar()"></div>
+  <aside class="login-sidebar" id="loginSidebar">
+    <div class="login-sidebar-header">
+      <h2>Welcome to Vaniko</h2>
+      <button class="close-sidebar" onclick="closeLoginSidebar()">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    
+    <div class="login-tabs">
+      <button class="login-tab active" id="loginTabBtn" onclick="switchAuthTab('login')">Login</button>
+      <button class="login-tab" id="signupTabBtn" onclick="switchAuthTab('signup')">Sign Up</button>
+    </div>
+    
+    <!-- Login Form -->
+    <form class="auth-form" id="loginForm" onsubmit="handleLogin(event)">
+      <div class="form-group">
+        <label>Email or Mobile</label>
+        <div class="input-with-icon">
+          <i class="fas fa-envelope"></i>
+          <input type="text" id="loginEmail" placeholder="Enter email or mobile" required>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <div class="input-with-icon">
+          <i class="fas fa-lock"></i>
+          <input type="password" id="loginPassword" placeholder="Enter password" required>
+        </div>
+      </div>
+      <div class="form-options">
+        <label class="remember-me">
+          <input type="checkbox"> Remember me
+        </label>
+        <a href="#" class="forgot-link">Forgot Password?</a>
+      </div>
+      <button type="submit" class="auth-submit-btn">Login</button>
+    </form>
+    
+    <!-- Signup Form -->
+    <form class="auth-form" id="signupForm" style="display: none;" onsubmit="handleSignup(event)">
+      <div class="form-group">
+        <label>Full Name</label>
+        <div class="input-with-icon">
+          <i class="fas fa-user"></i>
+          <input type="text" id="signupName" placeholder="Enter your name" required>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Email</label>
+        <div class="input-with-icon">
+          <i class="fas fa-envelope"></i>
+          <input type="email" id="signupEmail" placeholder="Enter email" required>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Mobile</label>
+        <div class="input-with-icon">
+          <i class="fas fa-phone"></i>
+          <input type="tel" id="signupMobile" placeholder="Enter mobile number" required>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <div class="input-with-icon">
+          <i class="fas fa-lock"></i>
+          <input type="password" id="signupPassword" placeholder="Create password" required>
+        </div>
+      </div>
+      <button type="submit" class="auth-submit-btn">Create Account</button>
+    </form>
+    
+    <div class="login-divider">
+      <span>or continue with</span>
+    </div>
+    
+    <div class="social-login">
+      <button class="social-btn google" onclick="socialLogin('Google')">
+        <i class="fab fa-google"></i> Google
+      </button>
+      <button class="social-btn facebook" onclick="socialLogin('Facebook')">
+        <i class="fab fa-facebook-f"></i> Facebook
+      </button>
+    </div>
+    
+    <p class="login-footer-text">
+      By continuing, you agree to Vaniko's <a href="#">Terms of Use</a> and <a href="#">Privacy Policy</a>.
+    </p>
+  </aside>
+
+  <!-- Toast Notification -->
+  <div class="toast" id="toast"></div>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-col">
+          <h4>About Vaniko</h4>
+          <ul>
+            <li><a href="#">About Us</a></li>
+            <li><a href="#">Careers</a></li>
+            <li><a href="#">Press</a></li>
+            <li><a href="#">Contact</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h4>Help</h4>
+          <ul>
+            <li><a href="#">Payments</a></li>
+            <li><a href="#">Shipping</a></li>
+            <li><a href="#">Returns</a></li>
+            <li><a href="#">FAQ</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h4>Policy</h4>
+          <ul>
+            <li><a href="#">Return Policy</a></li>
+            <li><a href="#">Terms of Use</a></li>
+            <li><a href="#">Security</a></li>
+            <li><a href="#">Privacy</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h4>Connect</h4>
+          <ul>
+            <li><a href="#">Facebook</a></li>
+            <li><a href="#">Instagram</a></li>
+            <li><a href="#">Twitter</a></li>
+            <li><a href="#">YouTube</a></li>
+          </ul>
+        </div>
+        <div class="footer-col address">
+          <h4>Registered Office</h4>
+          <p>Vaniko Retail Pvt. Ltd.<br>
+          Tech Park, Outer Ring Road,<br>
+          Bengaluru, Karnataka 560103<br>
+          India</p>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p>© 2026 Vaniko. All rights reserved. | Demo website for educational purpose</p>
+      </div>
+    </div>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>
